@@ -52,5 +52,4 @@ export type ContactEntity = {
 export type ContactsQuery = {
   page: number;
   limit: number;
-  updatedAfter?: Date;
 };

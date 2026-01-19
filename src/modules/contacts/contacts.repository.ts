@@ -26,21 +26,15 @@ export class ContactsRepository {
     data: ContactEntity[];
     total: number;
   }> {
-    const filter: Record<string, unknown> = {};
-
-    if (query.updatedAfter) {
-      filter.updatedAt = { $gt: query.updatedAfter };
-    }
-
     const [data, total] = await Promise.all([
       this.contactModel
-        .find(filter)
+        .find()
         .sort({ updatedAt: -1 })
         .skip((query.page - 1) * query.limit)
         .limit(query.limit)
         .lean()
         .exec(),
-      this.contactModel.countDocuments(filter).exec(),
+      this.contactModel.countDocuments().exec(),
     ]);
 
     return { data, total };
@@ -67,11 +61,10 @@ export class ContactsRepository {
         duplicateSkips: 0,
       };
     } catch (error) {
-      const duplicateSkips = this.getDuplicateKeyCount(error);
-      const hasOnlyDuplicates =
-        duplicateSkips > 0 && this.isOnlyDuplicateKeyErrors(error);
+      const { count: duplicateSkips, isOnly: hasOnlyDuplicates } =
+        this.getDuplicateKeyErrors(error);
 
-      if (!hasOnlyDuplicates) {
+      if (duplicateSkips === 0 || !hasOnlyDuplicates) {
         throw error;
       }
 
@@ -113,18 +106,9 @@ export class ContactsRepository {
     });
   }
 
-  protected isDuplicateKeyError(error: unknown): boolean {
+  protected getDuplicateKeyErrors(error: unknown) {
     if (!error || typeof error !== 'object') {
-      return false;
-    }
-
-    const mongoError = error as { code?: number };
-    return mongoError.code === this.DUPLICATE_KEY_ERROR_CODE;
-  }
-
-  protected getDuplicateKeyCount(error: unknown): number {
-    if (!error || typeof error !== 'object') {
-      return 0;
+      return { count: 0, isOnly: false };
     }
 
     const bulkError = error as {
@@ -132,30 +116,19 @@ export class ContactsRepository {
     };
 
     if (!Array.isArray(bulkError.writeErrors)) {
-      return 0;
+      return { count: 0, isOnly: false };
     }
 
-    return bulkError.writeErrors.filter(
-      (item) => item.code === this.DUPLICATE_KEY_ERROR_CODE
-    ).length;
-  }
-
-  protected isOnlyDuplicateKeyErrors(error: unknown) {
-    if (!error || typeof error !== 'object') {
-      return false;
-    }
-
-    const bulkError = error as {
-      writeErrors?: Array<{ code?: number }>;
-    };
-
-    if (!Array.isArray(bulkError.writeErrors)) {
-      return false;
-    }
-
-    return bulkError.writeErrors.every(
+    const duplicateErrors = bulkError.writeErrors.filter(
       (item) => item.code === this.DUPLICATE_KEY_ERROR_CODE
     );
+
+    return {
+      count: duplicateErrors.length,
+      isOnly:
+        duplicateErrors.length > 0 &&
+        duplicateErrors.length === bulkError.writeErrors.length,
+    };
   }
 
   protected getBulkResultCounts(error: unknown): BulkWriteResult {

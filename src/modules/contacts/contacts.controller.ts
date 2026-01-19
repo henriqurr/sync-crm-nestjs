@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Controller,
   DefaultValuePipe,
   Get,
@@ -19,23 +18,12 @@ export class ContactsController {
   @Get()
   public async listContacts(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-    @Query('updatedAfter') updatedAfter?: string
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number
   ) {
     const query: ContactsQuery = {
       page: Math.max(page, 1),
       limit: Math.min(Math.max(limit, 1), 100),
     };
-
-    if (updatedAfter) {
-      const date = new Date(updatedAfter);
-
-      if (Number.isNaN(date.getTime())) {
-        throw new BadRequestException('Invalid updatedAfter date');
-      }
-
-      query.updatedAfter = date;
-    }
 
     return this.contactsService.list(query);
   }

@@ -24,7 +24,7 @@ pnpm start:dev
 
 ## Endpoints
 - `POST /contacts/sync` dispara uma sincronização manual
-- `GET /contacts` lista contatos locais (query: `page`, `limit`, `updatedAfter`)
+- `GET /contacts` lista contatos (query: `page`, `limit`)
 - `GET /contacts/:id` busca contato pelo id
 
 ## Observações
