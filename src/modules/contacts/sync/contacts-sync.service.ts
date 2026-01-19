@@ -54,10 +54,10 @@ export class ContactsSyncService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  public async syncOnce(): Promise<void> {
+  public async syncOnce() {
     const syncId = `${Date.now()}-${++this.syncRun}`;
     const startedAt = Date.now();
-    this.metrics.runs += 1;
+    this.metrics.runs++;
 
     try {
       const contacts = await this.crmClient.fetchContacts();
@@ -95,7 +95,7 @@ export class ContactsSyncService implements OnModuleInit, OnModuleDestroy {
         summary.duplicateSkips += result.duplicateSkips;
       }
 
-      this.metrics.success += 1;
+      this.metrics.success++;
       this.metrics.totalDuplicateSkips += summary.duplicateSkips;
       this.metrics.lastDurationMs = Date.now() - startedAt;
 
@@ -103,7 +103,7 @@ export class ContactsSyncService implements OnModuleInit, OnModuleDestroy {
         `Sync completed: syncId=${syncId} received=${contacts.length} normalized=${normalizedEntities.length} matched=${summary.matched} modified=${summary.modified} upserted=${summary.upserted} duplicateSkips=${summary.duplicateSkips} durationMs=${this.metrics.lastDurationMs}`
       );
     } catch (error) {
-      this.metrics.failure += 1;
+      this.metrics.failure++;
       this.metrics.lastDurationMs = Date.now() - startedAt;
       this.logger.error(`Sync failed: syncId=${syncId} error=${error}`);
       throw error;
@@ -120,18 +120,18 @@ export class ContactsSyncService implements OnModuleInit, OnModuleDestroy {
     for (const entity of entities) {
       const existing = byId.get(entity.id);
 
-      if (!existing) {
+      if (existing === undefined) {
         byId.set(entity.id, entity);
         continue;
       }
 
       if (entity.updatedAt.getTime() > existing.updatedAt.getTime()) {
         byId.set(entity.id, entity);
-        duplicateSkips += 1;
+        duplicateSkips++;
         continue;
       }
 
-      duplicateSkips += 1;
+      duplicateSkips++;
     }
 
     return { entities: Array.from(byId.values()), duplicateSkips };

@@ -32,7 +32,7 @@ export class ContactsController {
   public async getContact(@Param('id') id: string) {
     const contact = await this.contactsService.getById(id);
 
-    if (!contact) {
+    if (contact === null) {
       throw new NotFoundException('Contact not found');
     }
 
