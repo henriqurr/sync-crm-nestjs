@@ -1,0 +1,1 @@
+export const CONTACT_MODEL = 'CONTACT_MODEL';
